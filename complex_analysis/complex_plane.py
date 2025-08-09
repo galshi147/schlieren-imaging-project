@@ -41,7 +41,7 @@ class Airfoil:
         """Gets the x and y arrays of the airfoil shape.
 
         Returns:
-            tuple[np.ndarray, np.ndarray]: The x and y arrays of the airfoil shape.
+            (tuple[np.ndarray, np.ndarray]): The x and y arrays of the airfoil shape.
         """
         return extract_x_y_from_cmplxcar_arr(self.arr)
 
@@ -80,7 +80,7 @@ class Circle:
         """Gets the center of the circle.
 
         Returns:
-            Union[tuple, Cmplxcar, Cmplxrad]: The center of the circle.
+            (Union[tuple, Cmplxcar, Cmplxrad]): The center of the circle.
         """
         return self.center
     
@@ -88,7 +88,7 @@ class Circle:
         """Gets the x and y arrays of the circle.
 
         Returns:
-            tuple[np.ndarray, np.ndarray]: The x and y arrays of the circle.
+            (tuple[np.ndarray, np.ndarray]): The x and y arrays of the circle.
         """
         return extract_x_y_from_cmplxcar_arr(self.arr)
 
@@ -129,7 +129,7 @@ class PrintedAirfoil:
         """Gets the x and y arrays of the printed airfoil.
 
         Returns:
-            tuple[np.ndarray, np.ndarray]: The x and y arrays of the printed airfoil.
+            (tuple[np.ndarray, np.ndarray]): The x and y arrays of the printed airfoil.
         """
         return self.x.to_numpy(), self.y.to_numpy()
     
@@ -142,6 +142,11 @@ class PrintedAirfoil:
         return len(self.x)
     
     def normalize(self) -> Airfoil:
+        """Normalize the airfoil shape.
+
+        Returns:
+            Airfoil: The normalized airfoil shape.
+        """
         result = Airfoil(self.arr)
         result.normalize()
         return result
