@@ -174,5 +174,3 @@ class AirfoilComparePlotter:
         else:
             raise ValueError("Invalid color mode. Choose 'bright' or 'dark'.")
 
-plotter= AirfoilComparePlotter(jouk_k=1.165, radius=1.4, center_x=-0.16, center_y=0)
-plotter.run(color_mode="dark")

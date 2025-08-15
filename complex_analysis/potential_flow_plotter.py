@@ -58,13 +58,3 @@ class PotentialFlowPlotter:
         else:
             self.plot_flow(style_dict=self.light_mode)
     
-
-# airfoil_barrier = AirfoilBarrier(asymptotic_velocity=53, radius=1.4, jouk_const=1.165, cyl_shift=0.16)
-# cylinder_barrier = CylinderBarrier(asymptotic_velocity=53, radius=1.4, cyl_shift=0.16)
-# plotter = PotentialFlowPlotter(barrier1=airfoil_barrier, barrier2=cylinder_barrier)
-# plotter.run(color_scheme='dark')
-
-empty = EmptyBarrier()
-prism = PrismBarrier()
-plotter2 = PotentialFlowPlotter(barrier1=empty, barrier2=prism)
-plotter2.run(color_scheme='dark')
