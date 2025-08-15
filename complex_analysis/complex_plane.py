@@ -94,7 +94,7 @@ class Circle:
 
 
     def apply_joukowski(self, k: float) -> Airfoil:
-        """Applies the Joukowski transform to the circle.
+        """Applies the Joukowski transform to the circle and returns the resulting airfoil.
 
         Args:
             k (float): The strength of the Joukowski transform.
