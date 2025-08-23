@@ -111,12 +111,6 @@ class CfdPlotterFdm:
         self.velocity_ax.set_title(f'Velocity Field (Frame {self.frame_count})')
         vel_contour = self.velocity_ax.contourf(self.X_center.T, self.Y_center.T, velocity_magnitude.T,
                                                levels=100, cmap='viridis')
-        # # Add velocity vectors (subsample for clarity)
-        # skip = max(1, self.solver.nx // 20)
-        # self.velocity_ax.quiver(self.X_center[::skip, ::skip].T, self.Y_center[::skip, ::skip].T,
-        #                        u_center[::skip, ::skip].T, v_center[::skip, ::skip].T,
-        #                        scale=20, alpha=0.7, color='white', width=0.003)
-        # Add streamlines
         try:
             self.velocity_ax.streamplot(self.X_center.T, self.Y_center.T, u_center.T, v_center.T,
                                        color='white', density=1.5, linewidth=0.8)

@@ -1,20 +1,51 @@
-from simulations.old.cfd import *
-from simulations.old.cfd_plot import *
-from timeit import default_timer as timer
+from simulations.demo_fdm import (
+    demo_circle_flow, demo_triangle_flow, demo_airfoil_flow, demo_square_flow,
+    demo_comparison, quick_demo, interactive_demo
+)
 
 def main():
-    start = timer()
+    """Main demo function with all examples"""
+    print("🌊 CFD FDM Solver - Ready-to-Run Examples")
+    print("=" * 45)
+    print()
+    
+    # Uncomment the demo you want to run:
+    
+    # 1. Classic vortex shedding
+    # solver, plotter = demo_circle_flow()
+    
+    # 2. Sharp body aerodynamics
+    # solver, plotter = demo_triangle_flow()
+    
+    # 3. Airfoil aerodynamics
+    # solver, plotter = demo_airfoil_flow()
+    
+    # 4. Bluff body flow
+    # solver, plotter = demo_square_flow()
+    
+    # 5. Quick visualization
+    # solver, plotter = quick_demo()
+    
+    # 6. Compare multiple obstacles
+    # demo_comparison()
+    
+    # 7. Interactive choice
+    solver, plotter = interactive_demo()
+    
+    print("\n✓ Demo completed!")
+    return solver, plotter
 
-    my_cyl = Cyl(0.1)
-    simulation_data = plot_simulation(my_cyl, LENGTH, NX, NY, TIME_ITERATIONS, DT,
-                                DX, DY, AIR_STATIC_DENSITY,
-                                AIR_KINEMATIC_VISCOSITY, NIT)
-    # save_simulation(animation)
-    end = timer()
-    print(simulation_data, "\nexecution time (s): ", end - start)
-    print(get_Re_num(C, LENGTH, AIR_KINEMATIC_VISCOSITY))
-
-
-if __name__ == '__main__':
-    main()
-
+if __name__ == "__main__":
+    # Default: Run interactive demo
+    solver, plotter = main()
+    
+    # Example of individual demos (uncomment to run):
+    
+    # Circle vortex shedding
+    # solver, plotter = demo_circle_flow()
+    
+    # Airfoil with angle of attack
+    # solver, plotter = demo_airfoil_flow()
+    
+    # Quick demo for testing
+    # solver, plotter = quick_demo()

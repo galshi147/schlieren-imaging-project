@@ -1,86 +1,52 @@
 from cfd_obstacles import CfdObstacle
+from operators import FiniteDifferenceOperators
 import numpy as np
-
-class FiniteDifferenceOperators:
-    """
-    A utility class for finite difference operators on staggered grids.
-    This provides clean, readable implementations of vector calculus operators.
-    """
-    
-    @staticmethod
-    def gradient_x(field, dx):
-        """Compute gradient in x-direction using central differences"""
-        grad = np.zeros_like(field)
-        grad[1:-1, :] = (field[2:, :] - field[:-2, :]) / (2 * dx)
-        return grad
-    
-    @staticmethod
-    def gradient_y(field, dy):
-        """Compute gradient in y-direction using central differences"""
-        grad = np.zeros_like(field)
-        grad[:, 1:-1] = (field[:, 2:] - field[:, :-2]) / (2 * dy)
-        return grad
-    
-    @staticmethod
-    def divergence(u_field, v_field, dx, dy):
-        """Compute divergence of velocity field on staggered grid"""
-        nx, ny = u_field.shape[0] - 1, v_field.shape[1] - 1
-        div = np.zeros((nx, ny))
-        
-        # ∇·u = ∂u/∂x + ∂v/∂y on MAC grid
-        div[:, :] = (u_field[1:, :] - u_field[:-1, :]) / dx + \
-                    (v_field[:, 1:] - v_field[:, :-1]) / dy
-        return div
-    
-    @staticmethod
-    def laplacian(field, dx, dy):
-        """Compute Laplacian using 5-point stencil"""
-        lap = np.zeros_like(field)
-        lap[1:-1, 1:-1] = ((field[2:, 1:-1] - 2*field[1:-1, 1:-1] + field[:-2, 1:-1]) / dx**2 +
-                           (field[1:-1, 2:] - 2*field[1:-1, 1:-1] + field[1:-1, :-2]) / dy**2)
-        return lap
-    
-    @staticmethod
-    def interpolate_v_to_u_faces(v_field):
-        """Interpolate v-velocity to u-face locations"""
-        nx_u, ny_u = v_field.shape[0] + 1, v_field.shape[1] - 1
-        v_on_u = np.zeros((nx_u, ny_u))
-        
-        # Average v from surrounding cell faces - fix the indexing
-        if nx_u > 2 and ny_u > 0:
-            v_on_u[1:-1, :] = 0.25 * (v_field[:-1, :-1] + v_field[:-1, 1:] + 
-                                       v_field[1:, :-1] + v_field[1:, 1:])
-        return v_on_u
-    
-    @staticmethod
-    def interpolate_u_to_v_faces(u_field):
-        """Interpolate u-velocity to v-face locations"""
-        nx_v, ny_v = u_field.shape[0] - 1, u_field.shape[1] + 1
-        u_on_v = np.zeros((nx_v, ny_v))
-        
-        # Average u from surrounding cell faces - fix the indexing
-        if nx_v > 0 and ny_v > 2:
-            u_on_v[:, 1:-1] = 0.25 * (u_field[:-1, :-1] + u_field[1:, :-1] + 
-                                       u_field[:-1, 1:] + u_field[1:, 1:])
-        return u_on_v
 
 
 class CfdSolverFdm:
     """
-    A class to solve the 2D incompressible Navier-Stokes equations using Projection Method
-    with clear and readable finite difference operators.
-    
+    A class to solve the 2D incompressible Navier-Stokes equations using Projection Method.    
     The equations solved are:
-    ∂u/∂t + (u·∇)u = -1/ρ ∇p + ν∇²u
-    ∇·u = 0 (incompressibility constraint)
+    (-1-) ∂u/∂t + (⊽·∇)⊽ = -1/ρ ∇p + 𝜈∇²⊽
+    (-2-) ∇·⊽ = 0 (incompressibility constraint)
     
-    Using the projection method:
-    1. Compute intermediate velocity without pressure: u* = u + dt*(-∇u + ν∇²u)
-    2. Solve pressure Poisson equation: ∇²p = ρ/dt * ∇·u*
-    3. Correct velocity: u^(n+1) = u* - dt/ρ * ∇p
+    connective term: (⊽·∇)⊽
+    diffusion term: 𝜈∇²⊽
+
+    Projection method steps:
+    1. Compute intermediate velocity without pressure: ⊽* = ⊽ + dt(-(⊽·∇)⊽ + 𝜈∇²⊽)
+    2. Solve pressure Poisson equation: ∇²p = ρ/dt * (∇·⊽*)
+    3. Correct velocity: ⊽^(n+1) = ⊽* - dt/ρ * ∇p
+
+    self.u is the x-velocity field on a staggered MAC grid
+    self.v is the y-velocity field on a staggered MAC grid
+    self.p is the pressure field at cell centers
+
+    ┌─────┬─────┬─────┐
+    │  P  │  P  │  P  │  ← Pressure at cell centers
+    ├←─u──┼←─u──┼←─u──┤  ← u-velocity at cell faces (vertical edges)
+    │  P  │  P  │  P  │
+    ├←─u──┼←─u──┼←─u──┤
+    │  P  │  P  │  P  │
+    └─────┴─────┴─────┘
+       ↑     ↑     ↑
+       v     v     v      ← v-velocity at cell faces (horizontal edges)
     """
     
-    def __init__(self, obstacle: CfdObstacle, nx=128, ny=64, Lx=4.0, Ly=2.0, dt=0.005, rho=1, nu=0.01, initial_velocity=1.0):
+    def __init__(self, obstacle: CfdObstacle, nx=128, ny=64, Lx=4.0, Ly=2.0, dt=0.005, rho=1, nu=0.01, initial_velocity=1.0) -> None:
+        """Initialize the CFD solver with the given parameters.
+
+        Args:
+            obstacle (CfdObstacle): The obstacle object defining the fluid domain.
+            nx (int, optional): Number of grid points in the x-direction. Defaults to 128.
+            ny (int, optional): Number of grid points in the y-direction. Defaults to 64.
+            Lx (float, optional): Length of the domain in the x-direction. Defaults to 4.0.
+            Ly (float, optional): Length of the domain in the y-direction. Defaults to 2.0.
+            dt (float, optional): Time step size. Defaults to 0.005.
+            rho (int, optional): (ρ) Density of the fluid. Defaults to 1.
+            nu (float, optional): (𝜈) Kinematic viscosity of the fluid. Defaults to 0.01.
+            initial_velocity (float, optional): Initial velocity magnitude. Defaults to 1.0.
+        """
         # Physical parameters
         self.nx = nx
         self.ny = ny
@@ -93,7 +59,6 @@ class CfdSolverFdm:
         self.nu = nu
         self.initial_velocity = initial_velocity
         
-        # Create finite difference operators
         self.fd_ops = FiniteDifferenceOperators()
         
         # Initialize velocity and pressure fields (MAC grid)
@@ -109,43 +74,67 @@ class CfdSolverFdm:
         self.diffusion_u = None
         self.diffusion_v = None
 
-        # Initialize obstacle
         self.init_obstacle(obstacle)
     
-    def init_obstacle(self, obstacle: CfdObstacle):
+    def init_obstacle(self, obstacle: CfdObstacle) -> None:
         """Initialize obstacle mask at pressure grid points (cell centers)"""
-        # Create coordinate arrays for pressure grid
         x = (np.arange(self.nx) + 0.5) * self.dx
         y = (np.arange(self.ny) + 0.5) * self.dy
         Xc, Yc = np.meshgrid(x, y, indexing='ij')
-        
         # Initialize fluid mask (1=fluid, 0=solid)
         chi = np.ones((self.nx, self.ny), dtype=np.int8)
         self.obstacle = obstacle.get_mask(Xc, Yc, chi)
-    
-    def get_grid_data(self):
+
+    def get_grid_data(self) -> tuple[int, int, float, float]:
+        """Get grid data for the simulation.
+
+        Returns:
+            tuple[int, int, float, float]: Grid dimensions (nx, ny) and domain sizes (Lx, Ly).
+        """
         return self.nx, self.ny, self.Lx, self.Ly
-    
-    def get_velocities(self):
+
+    def get_velocities(self) -> tuple[np.ndarray, np.ndarray]:
+        """Get velocity fields for the simulation.
+
+        Returns:
+            tuple[np.ndarray, np.ndarray]: u-velocity and v-velocity fields.
+        """
         return self.u, self.v
-    
-    def get_pressure(self):
+
+    def get_pressure(self) -> np.ndarray:
+        """Get pressure field for the simulation.
+
+        Returns:
+            np.ndarray: Pressure field.
+        """
         return self.p
     
     def get_obstacle(self):
+        """Get obstacle mask for the simulation.
+
+        Returns:
+            np.ndarray: Obstacle mask.
+        """
         return self.obstacle
-    
-    def initialize_flow(self, steps=50):
-        """Initialize flow field gradually to avoid shock"""
+
+    def initialize_flow(self, steps=50, time_step_coef=0.1, viscosity_coef=10, print_info=False):
+        """Gradually initialize flow field to avoid shock.
+
+        Args:
+            steps (int, optional): Number of initialization steps. Defaults to 50.
+            time_step_coef (float, optional): Coefficient to reduce time step. Defaults to 0.1.
+            viscosity_coef (float, optional): Coefficient to increase viscosity. Defaults to 10.
+            print_info (bool, optional): Whether to print initialization info. Defaults to False.
+        """
         # Store original parameters
         original_dt = self.dt
         original_nu = self.nu
         
         # Use smaller time step and higher viscosity for initialization
-        self.dt = original_dt * 0.1
-        self.nu = original_nu * 10  # Higher viscosity for smooth startup
-        
-        print("Initializing flow field...")
+        self.dt = original_dt * time_step_coef
+        self.nu = original_nu * viscosity_coef  # Higher viscosity for smooth startup
+
+        if print_info: print("Initializing flow field...")
         for i in range(steps):
             # Only apply boundary conditions and diffusion (no convection)
             self.apply_boundary_conditions()
@@ -164,12 +153,12 @@ class CfdSolverFdm:
             
             if i % 10 == 0:
                 max_u = np.max(np.abs(self.u))
-                print(f"  Step {i}: max |u| = {max_u:.4f}")
-        
+                if print_info: print(f"  Step {i}: max |u| = {max_u:.4f}")
+
         # Restore original parameters
         self.dt = original_dt
         self.nu = original_nu
-        print("Flow initialization complete.")
+        if print_info: print("Flow initialization complete.")
 
     def apply_boundary_conditions(self):
         """Apply boundary conditions for flow domain"""
@@ -186,10 +175,10 @@ class CfdSolverFdm:
         
         # Outflow (right boundary): zero gradient
         self.u[-1, :] = self.u[-2, :]
-    
-    def apply_obstacle_boundary_conditions(self, u_field, v_field):
-        """Apply no-slip boundary conditions on obstacle surfaces"""
-        # Zero velocity on faces adjacent to solid cells
+
+    def apply_obstacle_boundary_conditions(self, u_field: np.ndarray, v_field: np.ndarray) -> None:
+        """Apply no-slip boundary conditions on obstacle surfaces 
+        (Zero velocity on faces adjacent to solid cells)"""
         
         # For u-faces (between pressure cells)
         solid_left = np.pad(1 - self.obstacle, ((1, 0), (0, 0)), constant_values=0)
@@ -203,9 +192,9 @@ class CfdSolverFdm:
         v_mask = np.logical_or(solid_bottom, solid_top)
         v_field[v_mask] = 0.0
     
-    def compute_convective_terms(self):
+    def compute_convective_terms(self, artificial_viscosity_coef=0.01):
         """
-        Compute convective terms: (u·∇)u and (u·∇)v
+        Compute convective terms: (⊽·∇)⊽ and (⊽·∇)v
         Using proper interpolation for staggered grids
         """
         # Initialize convection arrays
@@ -213,8 +202,8 @@ class CfdSolverFdm:
         self.convection_v = np.zeros_like(self.v)
 
         # Add artificial viscosity for stability
-        artificial_viscosity = 0.01 * max(self.dx, self.dy) * np.max(np.abs(self.u))
-        
+        artificial_viscosity = artificial_viscosity_coef * max(self.dx, self.dy) * np.max(np.abs(self.u))
+
         # For u-momentum: u * ∂u/∂x + v * ∂u/∂y
         if self.u.shape[0] > 2 and self.u.shape[1] > 2:
             # u * ∂u/∂x (both u and ∂u/∂x are at u-faces)
@@ -244,24 +233,16 @@ class CfdSolverFdm:
             u_at_v = self.fd_ops.interpolate_u_to_v_faces(self.u)
             dv_dx = self.fd_ops.gradient_x(self.v, self.dx)
             self.convection_v += u_at_v * dv_dx
-    
-    def compute_convective_terms_old(self):
-        """Compute convective terms clearly"""
-        # u * du/dx + v * du/dy
-        self.convection_u = self.u * self.fd_ops.gradient_x(self.u, self.dx) + self.fd_ops.interpolate_v_to_u_faces(self.v) * self.fd_ops.gradient_y(self.u, self.dy)
-
-        # u * dv/dx + v * dv/dy
-        self.convection_v = self.fd_ops.interpolate_u_to_v_faces(self.u) * self.fd_ops.gradient_x(self.v, self.dx) + self.v * self.fd_ops.gradient_y(self.v, self.dy)
 
     def compute_diffusion_terms(self):
-        """Compute viscous diffusion terms: ν∇²u and ν∇²v"""
+        """Compute viscous diffusion terms: 𝜈∇²u and 𝜈∇²v"""
         self.diffusion_u = self.nu * self.fd_ops.laplacian(self.u, self.dx, self.dy)
         self.diffusion_v = self.nu * self.fd_ops.laplacian(self.v, self.dx, self.dy)
     
-    def compute_intermediate_velocity(self):
+    def compute_intermediate_velocity(self) -> None:
         """
         Compute intermediate velocity field without pressure correction
-        u* = u^n + dt * (-convection + diffusion)
+        ⊽* = ⊽^n + dt * (-convection + diffusion)
         """
         self.u_star = self.u + self.dt * (-self.convection_u + self.diffusion_u)
         self.v_star = self.v + self.dt * (-self.convection_v + self.diffusion_v)
@@ -271,20 +252,26 @@ class CfdSolverFdm:
     
     def solve_pressure_poisson(self):
         """
-        Solve pressure Poisson equation: ∇²p = ρ/dt * ∇·u*
-        Using Gauss-Seidel iteration with successive over-relaxation (SOR)
+        Solve pressure Poisson equation: ∇²p = ρ/dt * (∇·⊽*)
+        Using Gauss-Seidel iteration with successive over-relaxation (SOR) method
         """
         # Compute divergence of intermediate velocity
         div_u_star = self.fd_ops.divergence(self.u_star, self.v_star, self.dx, self.dy)
         rhs = (self.rho / self.dt) * div_u_star
         
         # Solve using SOR iteration
-        self.p = self._solve_poisson_sor(rhs, max_iterations=100, omega=1.7)
-    
-    def _solve_poisson_sor(self, rhs, max_iterations=100, omega=1.7):
+        self.p = self._solve_poisson_sor(rhs)
+
+    def _solve_poisson_sor(self, rhs: np.ndarray, max_iterations: int = 100, omega: float = 1.7) -> np.ndarray:
         """
         Solve Poisson equation using Successive Over-Relaxation (SOR)
         with Neumann boundary conditions on obstacles
+        Args:
+            rhs (np.ndarray): Right-hand side of the Poisson equation (Inhomogeneous term).
+            max_iterations (int, optional): Maximum number of SOR iterations. Defaults to 100.
+            omega (float, optional): Relaxation factor (1 < omega < 2). Defaults to 1.7.
+        Returns:
+            np.ndarray: Solved pressure field.
         """
         p = np.zeros_like(rhs)
         dx2_inv, dy2_inv = 1.0 / self.dx**2, 1.0 / self.dy**2
@@ -322,10 +309,10 @@ class CfdSolverFdm:
                 p[i0, j0] = 0.0
         
         return p
-    
-    def correct_velocity(self):
+
+    def correct_velocity(self) -> None:
         """
-        Correct velocity using pressure gradient: u^(n+1) = u* - dt/ρ * ∇p
+        Correct velocity using pressure gradient: ⊽^(n+1) = ⊽* - dt/ρ * ∇p
         """
         # Compute pressure gradients at face locations
         # For u-faces: gradient between adjacent pressure cells
@@ -340,10 +327,7 @@ class CfdSolverFdm:
         self.u = self.u_star - (self.dt / self.rho) * dp_dx
         self.v = self.v_star - (self.dt / self.rho) * dp_dy
     
-        # self.u = self.u_star - (self.dt / self.rho) * self.fd_ops.gradient_x(self.p, self.dx)
-        # self.v = self.v_star - (self.dt / self.rho) * self.fd_ops.gradient_y(self.p, self.dy)
-
-    def step(self):
+    def step(self) -> None:
         """Perform one time step of the Navier-Stokes solver"""
         # Apply boundary conditions
         self.apply_boundary_conditions()
@@ -365,14 +349,21 @@ class CfdSolverFdm:
         # Apply boundary conditions again
         self.apply_boundary_conditions()
         self.apply_obstacle_boundary_conditions(self.u, self.v)
-    
-    def run(self, iterations):
-        """Run the simulation for a specified number of iterations"""
+
+    def run(self, iterations: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Run the simulation for a specified number of iterations
+
+        Args:
+            iterations (int): Number of iterations to run the simulation
+
+        Returns:
+            tuple[np.ndarray, np.ndarray, np.ndarray]: Final velocity and pressure fields
+        """
         for _ in range(iterations):
             self.step()
         return self.u, self.v, self.p
     
-    def get_velocity_magnitude(self):
+    def get_velocity_magnitude(self) -> np.ndarray:
         """Compute velocity magnitude at cell centers"""
         # Interpolate velocities to cell centers
         u_center = 0.5 * (self.u[1:, :] + self.u[:-1, :])
