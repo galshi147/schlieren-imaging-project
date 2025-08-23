@@ -1,5 +1,5 @@
-from cfd import *
-from cfd_plot import *
+from simulations.old.cfd import *
+from simulations.old.cfd_plot import *
 from timeit import default_timer as timer
 
 def main():

@@ -1,4 +1,4 @@
-from cfd_calc import *
+from simulations.old.cfd_calc import *
 from matplotlib.animation import FuncAnimation
 from matplotlib.collections import LineCollection
 from matplotlib.patches import FancyArrowPatch

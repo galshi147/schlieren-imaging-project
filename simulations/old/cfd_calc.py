@@ -1,4 +1,4 @@
-from cfd import *
+from simulations.old.cfd import *
 # from tqdm import tqdm
 
 
