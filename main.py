@@ -18,7 +18,7 @@ def main():
     # solver, plotter = demo_triangle_flow()
     
     # 3. Airfoil aerodynamics
-    solver, plotter = demo_airfoil_flow(save_animation=True)
+    # solver, plotter = demo_airfoil_flow(save_animation=True)
     
     # 4. Bluff body flow
     # solver, plotter = demo_square_flow()
@@ -30,7 +30,7 @@ def main():
     # demo_comparison()
     
     # 7. Interactive choice
-    # solver, plotter = interactive_demo()
+    solver, plotter = interactive_demo()
     
     print("\n✓ Demo completed!")
     return solver, plotter
