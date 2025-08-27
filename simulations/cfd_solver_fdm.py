@@ -1,5 +1,5 @@
-from cfd_obstacles import CfdObstacle
-from operators import FiniteDifferenceOperators
+from .cfd_obstacles import CfdObstacle
+from .operators import FiniteDifferenceOperators
 import numpy as np
 
 

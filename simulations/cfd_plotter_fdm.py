@@ -1,9 +1,9 @@
-from cfd_solver_fdm import CfdSolverFdm
 from matplotlib import pyplot as plt, cm
 from matplotlib.animation import FuncAnimation
 import numpy as np
 
-from cfd_obstacles import CfdObstacle
+from .cfd_solver_fdm import CfdSolverFdm
+from .cfd_obstacles import CfdObstacle
 
 class CfdPlotterFdm:
     """
@@ -46,63 +46,7 @@ class CfdPlotterFdm:
         return u_center, v_center
     
     def plot_static(self):
-        """Create a static plot of the current simulation state"""
-        u_center, v_center = self.get_velocity_at_centers()
-        velocity_magnitude = np.sqrt(u_center**2 + v_center**2)
-        
-        # Clear previous plots
-        self.velocity_ax.clear()
-        self.pressure_ax.clear()
-        
-        # Plot velocity magnitude with streamlines
-        self.velocity_ax.set_title(f'Velocity Field (Frame {self.frame_count})')
-        
-        # Velocity magnitude contour
-        vel_contour = self.velocity_ax.contourf(self.X_center.T, self.Y_center.T, velocity_magnitude.T, 
-                                               levels=20, cmap='viridis')
-        
-        # Add velocity vectors (subsample for clarity)
-        skip = max(1, self.solver.nx // 20)
-        self.velocity_ax.quiver(self.X_center[::skip, ::skip].T, self.Y_center[::skip, ::skip].T,
-                               u_center[::skip, ::skip].T, v_center[::skip, ::skip].T,
-                               scale=20, alpha=0.7, color='white', width=0.003)
-        
-        # Add streamlines
-        try:
-            self.velocity_ax.streamplot(self.X_center.T, self.Y_center.T, u_center.T, v_center.T,
-                                       color='red', density=1.5, linewidth=0.8, alpha=0.6)
-        except:
-            print("Streamline plotting failed.")
-        
-        # Plot obstacle
-        obstacle_mask = (1 - self.obstacle).astype(bool)
-        self.velocity_ax.contourf(self.X_center.T, self.Y_center.T, obstacle_mask.T, 
-                                 levels=[0.5, 1.5], colors=['black'], alpha=0.8)
-        
-        self.velocity_ax.set_xlabel('x')
-        self.velocity_ax.set_ylabel('y')
-        self.velocity_ax.set_aspect('equal')
-        self.velocity_ax.set_xlim(0, self.Lx)
-        self.velocity_ax.set_ylim(0, self.Ly)
-        plt.colorbar(vel_contour, ax=self.velocity_ax, label='Velocity Magnitude')
-        
-        # Plot pressure field
-        self.pressure_ax.set_title(f'Pressure Field (Frame {self.frame_count})')
-        pressure_contour = self.pressure_ax.contourf(self.X_center.T, self.Y_center.T, self.solver.get_pressure().T,
-                                                    levels=20, cmap='RdBu_r')
-        
-        # Plot obstacle on pressure plot
-        self.pressure_ax.contourf(self.X_center.T, self.Y_center.T, obstacle_mask.T,
-                                 levels=[0.5, 1.5], colors=['black'], alpha=0.8)
-        
-        self.pressure_ax.set_xlabel('x')
-        self.pressure_ax.set_ylabel('y')
-        self.pressure_ax.set_aspect('equal')
-        self.pressure_ax.set_xlim(0, self.solver.Lx)
-        self.pressure_ax.set_ylim(0, self.solver.Ly)
-        plt.colorbar(pressure_contour, ax=self.pressure_ax, label='Pressure')
-        
-        plt.tight_layout()
+        self.plot_frame()
         plt.show()
     
     def design_velocity_ax(self):
@@ -138,13 +82,7 @@ class CfdPlotterFdm:
             # Update existing colorbar with new data
             self.pressure_cbar.update_normal(pressure_contour)
 
-    def animate_step(self, frame):
-        """Animation function called for each frame"""
-        # Perform one simulation step
-        for _ in range(3):
-            self.solver.step()
-        self.frame_count += 1
-        
+    def plot_frame(self):
         # Clear axes
         self.velocity_ax.clear()
         self.pressure_ax.clear()
@@ -165,6 +103,16 @@ class CfdPlotterFdm:
             self.obstacle.plot_obstacle(ax)
 
         plt.tight_layout()
+
+
+
+    def animate_step(self, frame):
+        """Animation function called for each frame"""
+        # Perform one simulation step
+        for _ in range(3):
+            self.solver.step()
+        self.frame_count += 1
+        self.plot_frame()
         return []
     
     def animate(self, frames=100, interval=50, save_animation=False, filename='cfd_fdm_animation.gif'):

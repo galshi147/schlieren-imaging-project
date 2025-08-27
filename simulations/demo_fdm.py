@@ -4,11 +4,11 @@ for different obstacle types with optimized parameters.
 """
 
 import numpy as np
-from cfd_solver_fdm import CfdSolverFdm
-from cfd_obstacles import CfdCircle, CfdTriangle, CfdAirfoil, CfdSquare
-from cfd_plotter_fdm import CfdPlotterFdm
+from .cfd_solver_fdm import CfdSolverFdm
+from .cfd_obstacles import CfdCircle, CfdTriangle, CfdAirfoil, CfdSquare
+from .cfd_plotter_fdm import CfdPlotterFdm
 
-def demo_circle_flow():
+def demo_circle_flow(save_animation=False):
     """Flow around a circular cylinder - classic von Kármán vortex street"""
     print("🔵 Demo: Flow around circular cylinder")
     print("=" * 40)
@@ -35,11 +35,11 @@ def demo_circle_flow():
     # Create plotter and run animation
     plotter = CfdPlotterFdm(solver, circle)
     print("✓ Starting animation... Close window when done.")
-    plotter.animate(frames=300, interval=30)
-    
+    plotter.animate(frames=300, interval=30, save_animation=save_animation, filename='circle_flow.gif')
+
     return solver, plotter
 
-def demo_triangle_flow():
+def demo_triangle_flow(save_animation=False):
     """Flow around a triangular obstacle - sharp body aerodynamics"""
     print("🔺 Demo: Flow around triangular obstacle")
     print("=" * 40)
@@ -66,11 +66,11 @@ def demo_triangle_flow():
     # Create plotter and run
     plotter = CfdPlotterFdm(solver, triangle)
     print("✓ Starting animation... Close window when done.")
-    plotter.animate(frames=250, interval=40)
-    
+    plotter.animate(frames=250, interval=40, save_animation=save_animation, filename='triangle_flow.gif')
+
     return solver, plotter
 
-def demo_airfoil_flow():
+def demo_airfoil_flow(save_animation=False):
     """Flow around NACA airfoil - aerodynamic lift generation"""
     print("✈️  Demo: Flow around NACA 0012 airfoil")
     print("=" * 40)
@@ -94,7 +94,7 @@ def demo_airfoil_flow():
     )
 
     print(f"Grid: {solver.nx}x{solver.ny}, Domain: {solver.Lx}x{solver.Ly}")
-    print(f"Airfoil: NACA {airfoil.NACA_code}, AoA: {np.degrees(airfoil.angle_of_attack):.1f}°")
+    print(f"Airfoil: NACA {airfoil.NACA_code}, Angle of Attack: {np.degrees(airfoil.angle_of_attack):.1f}°")
     
     # Initialize flow carefully
     solver.initialize_flow(steps=40)
@@ -102,11 +102,11 @@ def demo_airfoil_flow():
     # Create plotter and run
     plotter = CfdPlotterFdm(solver, airfoil)
     print("✓ Starting animation... Close window when done.")
-    plotter.animate(frames=400, interval=25)
-    
+    plotter.animate(frames=400, interval=25, save_animation=save_animation, filename='airfoil_flow.gif')
+
     return solver, plotter
 
-def demo_square_flow():
+def demo_square_flow(save_animation=False):
     """Flow around a square obstacle - bluff body with sharp corners"""
     print("⬜ Demo: Flow around square obstacle")
     print("=" * 40)
@@ -132,8 +132,8 @@ def demo_square_flow():
     # Create plotter and run
     plotter = CfdPlotterFdm(solver, square)
     print("✓ Starting animation... Close window when done.")
-    plotter.animate(frames=200, interval=50)
-    
+    plotter.animate(frames=200, interval=50, save_animation=save_animation, filename='square_flow.gif')
+
     return solver, plotter
 
 def demo_comparison():
@@ -182,7 +182,7 @@ def demo_comparison():
     print(f"\nCircle - Max velocity: {stats1['max_velocity']:.3f}, Max pressure: {stats1['max_pressure']:.3f}")
     print(f"Square - Max velocity: {stats2['max_velocity']:.3f}, Max pressure: {stats2['max_pressure']:.3f}")
 
-def quick_demo():
+def quick_demo(save_animation=False):
     """Quick demo with optimized parameters for fast visualization"""
     print("⚡ Quick Demo: Fast circular cylinder flow")
     print("=" * 35)
@@ -199,21 +199,21 @@ def quick_demo():
     
     solver.initialize_flow(steps=15)
     plotter = CfdPlotterFdm(solver, circle)
-    plotter.animate(frames=150, interval=50)
-    
+    plotter.animate(frames=150, interval=50, save_animation=save_animation, filename='quick_demo.gif')
+
     return solver, plotter
 
 def interactive_demo():
     """Interactive demo - choose your obstacle type"""
     print("🎮 Interactive Demo")
     print("=" * 20)
-    print("Choose obstacle type:")
-    print("1. Circle (classic vortex shedding)")
-    print("2. Triangle (sharp body)")  
-    print("3. Airfoil (aerodynamic)")
-    print("4. Square (bluff body)")
-    print("5. Quick demo (fast)")
-    print("6. Comparison (multiple obstacles)")
+    print("""Choose obstacle type:
+          1. Circle (classic vortex shedding)
+          2. Triangle (sharp body)
+          3. Airfoil (aerodynamic)
+          4. Square (bluff body)
+          5. Quick demo (fast)
+          6. Comparison (multiple obstacles)""")
     
     choice = input("Enter choice (1-6): ").strip()
     
