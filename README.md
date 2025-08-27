@@ -5,7 +5,7 @@
 Schlieren imaging is a powerful optical method to explore and visualize physical flows around objects. The basic concept involves illuminating the flow field and using a mirror or lens to concentrate the light to a focus point with a pinhole. A knife-edge barrier is placed at the focus point to cut the center of the light beam, effectively applying a Fourier transform to the optical data. By cutting the center of the focal point, we apply a high-pass filter that reveals fine differences in fluid density. This technique enables cameras to capture detailed photographs of flow patterns around objects and investigate complex fluid phenomena that would otherwise be invisible to the naked eye.
 ### Example Schlieren Imaging Output
 Air flows over an aerodynamic shape tilted by 15 degrees
-![Schlieren Imaging Example](complex_analysis/schlieren_imaging_example.gif)
+![Schlieren Imaging Example](schlieren_imaging_example.gif)
 ## Overview
 
 This project combines theoretical complex analysis with computational fluid dynamics (CFD) simulations to explore flow patterns around various obstacles. It provides both analytical solutions using potential flow theory and numerical simulations using finite difference methods (FDM) for incompressible Navier-Stokes equations.
