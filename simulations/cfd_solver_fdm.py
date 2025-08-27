@@ -24,9 +24,9 @@ class CfdSolverFdm:
 
     ┌─────┬─────┬─────┐
     │  P  │  P  │  P  │  ← Pressure at cell centers
-    ├←─u──┼←─u──┼←─u──┤  ← u-velocity at cell faces (vertical edges)
+    ├→─u──┼→─u──┼→─u──┤  ← u-velocity at cell faces (vertical edges)
     │  P  │  P  │  P  │
-    ├←─u──┼←─u──┼←─u──┤
+    ├→─u──┼→─u──┼→─u──┤
     │  P  │  P  │  P  │
     └─────┴─────┴─────┘
        ↑     ↑     ↑
